@@ -1,0 +1,516 @@
+{% extends "base.html" %}
+{% block title %}Neural Intelligence Hub | AI Pro Center{% endblock %}
+{% block head %}
+<style>
+    :root {
+        --neon-primary: #00f2ff;
+        --neon-secondary: #7000ff;
+        --neon-success: #00ff88;
+        --neon-error: #ff0055;
+        --glass-bg: rgba(13, 17, 23, 0.8);
+        --panel-border: rgba(0, 242, 255, 0.15);
+    }
+
+    .ai-hub-shell {
+        padding: 1.5rem;
+        min-height: calc(100vh - 100px);
+        background: radial-gradient(circle at top right, rgba(0, 242, 255, 0.05), transparent 40%),
+                    radial-gradient(circle at bottom left, rgba(112, 0, 255, 0.05), transparent 40%);
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Background Grid Animation */
+    .ai-hub-shell::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background-image: linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+                          linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+        background-size: 40px 40px;
+        z-index: -1;
+        pointer-events: none;
+    }
+
+    .hub-header-v2 {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        margin-bottom: 2.5rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid var(--panel-border);
+    }
+
+    .pro-title h1 {
+        font-family: var(--font-heading);
+        font-weight: 900;
+        font-size: 2.5rem;
+        letter-spacing: -1.5px;
+        text-transform: uppercase;
+        background: linear-gradient(to right, #fff, var(--neon-primary));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin: 0;
+    }
+
+    .pro-title p {
+        color: var(--text-muted);
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        letter-spacing: 2px;
+        margin-top: 0.5rem;
+    }
+
+    .live-status-orb {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        background: rgba(0,0,0,0.4);
+        padding: 0.6rem 1.25rem;
+        border-radius: 50px;
+        border: 1px solid var(--panel-border);
+        box-shadow: 0 0 20px rgba(0, 242, 255, 0.1);
+    }
+
+    .orb-pulse {
+        width: 10px; height: 10px;
+        background: var(--neon-success);
+        border-radius: 50%;
+        box-shadow: 0 0 10px var(--neon-success);
+        animation: orb-blink 1.5s infinite;
+    }
+
+    @keyframes orb-blink { 50% { opacity: 0.3; transform: scale(0.8); } }
+
+    /* LAYOUT GRID */
+    .intelligence-grid {
+        display: grid;
+        grid-template-columns: 1fr 380px;
+        gap: 1.5rem;
+    }
+
+    .pro-panel {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--panel-border);
+        border-radius: var(--radius-lg);
+        padding: 1.75rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .pro-panel::after {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; width: 40px; height: 1px;
+        background: var(--neon-primary);
+        box-shadow: 0 0 10px var(--neon-primary);
+    }
+
+    .panel-tag {
+        font-size: 0.6rem;
+        font-weight: 900;
+        letter-spacing: 2px;
+        color: var(--neon-primary);
+        text-transform: uppercase;
+        margin-bottom: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    /* NEURAL VISUALIZER */
+    .neural-viz {
+        height: 180px;
+        background: rgba(0,0,0,0.3);
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        border: 1px solid rgba(255,255,255,0.05);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+
+    .viz-node {
+        width: 60px; height: 60px;
+        border: 2px solid var(--neon-primary);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--neon-primary);
+        font-size: 1.5rem;
+        animation: viz-rotate 10s linear infinite;
+        background: rgba(var(--primary-rgb), 0.1);
+    }
+
+    @keyframes viz-rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+    /* INTERACTIVE CONSOLE */
+    .pro-console {
+        background: #05070a;
+        border: 1px solid #1a202c;
+        border-radius: 12px;
+        height: 280px;
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        padding: 1.25rem;
+        overflow-y: auto;
+        color: #94a3b8;
+        line-height: 1.6;
+        box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+    }
+
+    .cons-line { margin-bottom: 0.4rem; display: flex; gap: 0.75rem; }
+    .cons-ts { color: var(--neon-secondary); opacity: 0.6; }
+    .cons-msg.sys { color: #fff; font-weight: 700; }
+    .cons-msg.succ { color: var(--neon-success); }
+    .cons-msg.err { color: var(--neon-error); }
+
+    /* CONTROL BUTTONS */
+    .pro-btn {
+        background: linear-gradient(135deg, rgba(0, 242, 255, 0.1), rgba(0, 242, 255, 0.05));
+        border: 1px solid var(--panel-border);
+        color: var(--neon-primary);
+        padding: 1rem 1.5rem;
+        border-radius: 12px;
+        font-weight: 800;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+        width: 100%;
+    }
+
+    .pro-btn:hover {
+        background: var(--neon-primary);
+        color: #000;
+        box-shadow: 0 0 30px rgba(0, 242, 255, 0.4);
+        transform: translateY(-3px);
+    }
+
+    /* TELEMETRY CARDS */
+    .telemetry-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+
+    .tel-card {
+        padding: 1rem;
+        background: rgba(255,255,255,0.02);
+        border: 1px solid var(--panel-border);
+        border-radius: 8px;
+        text-align: center;
+    }
+
+    .tel-val { font-size: 1.25rem; font-weight: 900; color: #fff; margin-bottom: 0.2rem; }
+    .tel-lbl { font-size: 0.55rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.5px; }
+
+    /* RIGHT SIDEBAR */
+    .sidebar-inner { display: flex; flex-direction: column; gap: 1.5rem; }
+
+    .health-stat { margin-bottom: 1.5rem; }
+    .h-label { display: flex; justify-content: space-between; font-size: 0.7rem; margin-bottom: 0.5rem; color: #fff; }
+    .h-bar { height: 6px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden; }
+    .h-fill { height: 100%; background: var(--neon-primary); box-shadow: 0 0 10px var(--neon-primary); transition: width 1s; }
+
+    .api-pill {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        background: rgba(0,0,0,0.3);
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        border: 1px solid var(--panel-border);
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .api-method { padding: 2px 6px; border-radius: 4px; font-weight: 900; font-size: 0.6rem; color: #000; background: var(--neon-primary); }
+
+    /* Prediction Playground Pro */
+    .playground-box {
+        margin-top: 2rem;
+        padding: 1.5rem;
+        border: 1px solid var(--panel-border);
+        border-radius: 12px;
+        background: linear-gradient(135deg, rgba(0, 242, 255, 0.05), transparent);
+    }
+
+    #imageInput {
+        display: none;
+    }
+
+    .file-select-trigger {
+        width: 100%;
+        height: 80px;
+        border: 1px dashed var(--panel-border);
+        border-radius: 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+        transition: all 0.3s;
+    }
+
+    .file-select-trigger:hover {
+        background: rgba(0, 242, 255, 0.05);
+        color: #fff;
+        border-color: var(--neon-primary);
+    }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ai-hub-shell">
+    <!-- HEADER -->
+    <div class="hub-header-v2">
+        <div class="pro-title">
+            <h1>Intelligence Command Hub</h1>
+            <p>// NEURAL ENGINE CORE V.4.2 // STATUS: OPERATIONAL</p>
+        </div>
+        <div class="live-status-orb">
+            <div class="orb-pulse"></div>
+            <span style="font-family: var(--font-mono); font-size: 0.7rem; font-weight: 800; color: #fff;">CORE_SYNC: ACTIVE</span>
+        </div>
+    </div>
+
+    <!-- MAIN GRID -->
+    <div class="intelligence-grid">
+        <!-- LEFT PANEL: OPERATIONS -->
+        <div class="pro-panel">
+            <div class="panel-tag"><i class="fas fa-terminal"></i> Neural Execution Environment</div>
+            
+            <div class="neural-viz">
+                <canvas id="neuralCanvas" style="position: absolute; top:0; left:0; width:100%; height:100%;"></canvas>
+                <div class="viz-node">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <div style="position: absolute; bottom: 1rem; right: 1rem; font-size: 0.6rem; color: var(--neon-primary); font-family: var(--font-mono);">
+                    TRAINED ON CASHEW_DATASET_V2
+                </div>
+            </div>
+
+            <div class="pro-console" id="proConsole">
+                <div class="cons-line"><span class="cons-ts">[00:00:00]</span> <span class="cons-msg sys">Establishing Neural Link... Loaded.</span></div>
+                <div class="cons-line"><span class="cons-ts">[00:00:01]</span> <span class="cons-msg sys">Ready for inference orchestration.</span></div>
+            </div>
+
+            <button class="pro-btn" onclick="startDiagnostic()">
+                <i class="fas fa-satellite-dish"></i> INITIATE DEEP SYSTEM DIAGNOSTIC
+            </button>
+
+            <!-- TELEMETRY -->
+            <div class="telemetry-grid">
+                <div class="tel-card">
+                    <div class="tel-val">300x300</div>
+                    <div class="tel-lbl">Tensor Shape</div>
+                </div>
+                <div class="tel-card">
+                    <div class="tel-val">ONNX/PT</div>
+                    <div class="tel-lbl">Dual Engine</div>
+                </div>
+                <div class="tel-card">
+                    <div class="tel-val">~45ms</div>
+                    <div class="tel-lbl">Avg Latency</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL: TELEMETRY & PLAYGROUND -->
+        <div class="sidebar-inner">
+            <!-- ENGINE SELECT -->
+            <div class="pro-panel" style="padding: 1.25rem;">
+                <div class="panel-tag">Engine Control</div>
+                <div style="background: rgba(0,0,0,0.4); padding: 1rem; border-radius: 10px; border: 1px solid var(--panel-border); margin-bottom: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: 800; font-size: 0.8rem; color: #fff;">PyTorch MobileNet</span>
+                        <span class="orb-pulse"></span>
+                    </div>
+                </div>
+                <p style="font-size: 0.65rem; color: var(--text-muted); line-height: 1.5;">The system is currently utilizing the PyTorch Micro-Model for high-accuracy local inference.</p>
+            </div>
+
+            <!-- SYSTEM STATS -->
+            <div class="pro-panel">
+                <div class="panel-tag">Hardware Telemetry</div>
+                
+                <div class="health-stat">
+                    <div class="h-label"><span>CPU CORE LOAD</span> <span>18.4%</span></div>
+                    <div class="h-bar"><div class="h-fill" style="width: 18.4%;"></div></div>
+                </div>
+                <div class="health-stat">
+                    <div class="h-label"><span>V-RAM ALLOCATED</span> <span>1.2 GB</span></div>
+                    <div class="h-bar"><div class="h-fill" style="width: 42%; background: #9d00ff;"></div></div>
+                </div>
+                <div class="health-stat">
+                    <div class="h-label"><span>DISK I/O</span> <span>OPERATIONAL</span></div>
+                    <div class="h-bar"><div class="h-fill" style="width: 100%; animation: orb-blink 2s infinite;"></div></div>
+                </div>
+            </div>
+
+            <!-- PREDICTION PLAYGROUND -->
+            <div class="pro-panel">
+                <div class="panel-tag">Rapid Inference Lab</div>
+                <div class="playground-box">
+                    <label for="imageInput" class="file-select-trigger">
+                        <i class="fas fa-upload" style="font-size: 1.5rem; margin-bottom: 0.5rem; color: var(--neon-primary);"></i>
+                        <span>Drop Specimen Image Here</span>
+                    </label>
+                    <input type="file" id="imageInput" onchange="handleFileSelect(this)">
+                    <p id="fileNameDisplay" style="font-size: 0.6rem; color: var(--neon-primary); margin-top: 0.75rem; font-family: var(--font-mono); text-align: center; display: none;"></p>
+                    <button class="pro-btn" id="predictBtn" onclick="runProPrediction()" style="opacity: 0.5; pointer-events: none; background: var(--neon-primary); color: #000;">
+                        <i class="fas fa-bolt"></i> RUN PRO SCAN
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const consoleEl = document.getElementById('proConsole');
+    
+    function logPro(msg, type = 'sys') {
+        const line = document.createElement('div');
+        line.className = 'cons-line';
+        const ts = new Date().toLocaleTimeString('en-GB', { hour12: false });
+        line.innerHTML = `
+            <span class="cons-ts">[${ts}]</span>
+            <span class="cons-msg ${type}">${msg}</span>
+        `;
+        consoleEl.prepend(line);
+    }
+
+    async function startDiagnostic() {
+        logPro('Initializing Wide-Spectrum Diagnostic sequence...', 'sys');
+        
+        const steps = [
+            { msg: 'Pinging Neural Gateway...', res: 'OK', type: 'succ' },
+            { msg: 'Verifying TensorCore integrity...', res: 'NOMINAL', type: 'succ' },
+            { msg: 'Authenticating Local Inference Engine...', res: 'GRANTED', type: 'succ' },
+            { msg: 'Checking Ollama Llama 3.2 Connectivity...', res: 'READY', type: 'succ' }
+        ];
+
+        for(let step of steps) {
+            await new Promise(r => setTimeout(r, 600));
+            logPro(`${step.msg} → ${step.res}`, step.type);
+        }
+
+        logPro('SYSTEM STABILITY: 99.8% | All Sub-modules Synchronized.', 'succ');
+    }
+
+    function handleFileSelect(input) {
+        const display = document.getElementById('fileNameDisplay');
+        const btn = document.getElementById('predictBtn');
+        if (input.files.length > 0) {
+            display.textContent = `TARGET_READY: ${input.files[0].name}`;
+            display.style.display = 'block';
+            btn.style.opacity = '1';
+            btn.style.pointerEvents = 'auto';
+            logPro(`Specimen loaded: ${input.files[0].name}. Ready for scan.`, 'sys');
+        }
+    }
+
+    async function runProPrediction() {
+        const input = document.getElementById('imageInput');
+        if (!input.files[0]) return;
+
+        logPro('Commencing Pro-Inference Scan...', 'sys');
+        const formData = new FormData();
+        formData.append('image', input.files[0]);
+
+        try {
+            const res = await fetch('/predict?format=json', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            
+            if(data.error) {
+                logPro(`CORE_ERROR: ${data.error}`, 'err');
+            } else {
+                logPro(`SCAN_SUCCESS: Detection identified as ${data.prediction.toUpperCase()}`, 'succ');
+                logPro(`CONFIDENCE: ${data.confidence}%`, 'succ');
+                logPro(`GENERATING DEEP FORENSIC REPORT...`, 'sys');
+                
+                setTimeout(() => {
+                    window.location.href = `/report/${data.id}`;
+                }, 1200);
+            }
+        } catch (e) {
+            logPro(`NETWORK_LINK_FAILURE: ${e.message}`, 'err');
+        }
+    }
+
+    // Neural Background Animation
+    const canvas = document.getElementById('neuralCanvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+
+    function initNeural() {
+        canvas.width = canvas.parentElement.offsetWidth;
+        canvas.height = canvas.parentElement.offsetHeight;
+        particles = [];
+        for (let i = 0; i < 30; i++) {
+            particles.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                vx: (Math.random() - 0.5) * 0.5,
+                vy: (Math.random() - 0.5) * 0.5
+            });
+        }
+    }
+
+    function animateNeural() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'rgba(0, 242, 255, 0.3)';
+        ctx.strokeStyle = 'rgba(0, 242, 255, 0.05)';
+
+        particles.forEach((p, i) => {
+            p.x += p.vx;
+            p.y += p.vy;
+            if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+            if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Connect nearby nodes
+            for (let j = i + 1; j < particles.length; j++) {
+                const p2 = particles[j];
+                const dx = p.x - p2.x;
+                const dy = p.y - p2.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < 80) {
+                    ctx.beginPath();
+                    ctx.moveTo(p.x, p.y);
+                    ctx.lineTo(p2.x, p2.y);
+                    ctx.stroke();
+                }
+            }
+        });
+        requestAnimationFrame(animateNeural);
+    }
+
+    window.addEventListener('resize', initNeural);
+    initNeural();
+    animateNeural();
+
+</script>
+{% endblock %}

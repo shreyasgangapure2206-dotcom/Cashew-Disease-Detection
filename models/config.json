@@ -1,0 +1,61 @@
+{
+    "image_size": [300, 300],
+    "batch_size": 16,
+    "epochs": 80,
+    "model": "EfficientNetV2-B3",
+    "classes": [
+        "Anthracnose",
+        "Dieback",
+        "Healthy",
+        "Leaf Spot",
+        "Powdery Mildew"
+    ],
+    "last_conv_layer": "out_relu",
+    "final_accuracy": 0.9350,
+    "final_auc": 0.9680,
+    "final_precision": 0.9210,
+    "final_recall": 0.9150,
+    "training_date": "2026-03-24T20:46:00",
+    "model_path": "models/cashew_model.keras",
+    "input_shape": [300, 300, 3],
+    "output_shape": 5,
+    "framework": "TensorFlow 2.20.0",
+    "keras_version": "3.13.2",
+    "training_strategy": "Two-phase (Warmup + Fine-tuning)",
+    "optimizer": "AdamW",
+    "loss_function": "categorical_crossentropy",
+    "metrics": [
+        "accuracy",
+        "auc",
+        "precision",
+        "recall"
+    ],
+    "augmentation": {
+        "horizontal_flip": true,
+        "vertical_flip": true,
+        "rotation": 0.2,
+        "zoom": 0.2,
+        "contrast": 0.15,
+        "translation": 0.1
+    },
+    "class_weights": {
+        "Anthracnose": 0.95,
+        "Dieback": 1.65,
+        "Healthy": 0.95,
+        "Leaf Spot": 0.95,
+        "Powdery Mildew": 0.78
+    },
+    "production_ready": true,
+    "deployment_status": "ONLINE",
+    "api_version": "v1.0",
+    "features": [
+        "Real-time prediction",
+        "Grad-CAM visualization",
+        "Disease classification",
+        "Confidence scoring",
+        "Treatment recommendations",
+        "AI-powered reports",
+        "Prediction history",
+        "Batch processing"
+    ]
+}

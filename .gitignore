@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+instance/
+logs/
+static/uploads/*
+!static/uploads/.gitkeep
+dataset/
+*.7z
+*.zip
+
+# Environment
+.env
+
+# Model files (too large for git)
+models/*.keras
+models/*.h5
+models/logs/
+
+# Notebooks
+.ipynb_checkpoints/

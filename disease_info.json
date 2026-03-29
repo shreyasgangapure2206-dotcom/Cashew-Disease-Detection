@@ -1,0 +1,102 @@
+{
+    "Anthracnose": {
+        "description": "Anthracnose is a critical fungal infection caused by Colletotrichum gloeosporioides. It predominantly strikes during high humidity periods, attacking the tender parts of the cashew tree. Early detection and intervention are crucial to prevent significant yield loss.",
+        "symptoms": [
+            "Reddish-brown necrotic lesions on young leaves and shoots",
+            "Resin exudation from infected areas",
+            "Shriveling of nuts and apples (fruit rot)",
+            "Concentric rings appearing on older lesions"
+        ],
+        "remediation": "Immediate pruning of infected twigs followed by application of Bordeaux mixture (1%) or Copper Oxychloride (0.3%). Ensure proper spacing to reduce canopy humidity. Repeat spraying every 10-14 days during monsoon season.",
+        "severity": "High",
+        "scientific_name": "Colletotrichum gloeosporioides",
+        "field_advice": [
+            "Maintain 6-8 meter spacing between trees to improve air circulation and reduce humidity.",
+            "Remove and burn infected plant material immediately to prevent spore spread.",
+            "Apply fungicide preventatively during pre-monsoon season (May-June)."
+        ],
+        "recovery_probability": 72,
+        "spread_velocity": "High",
+        "projected_spread_7d": 12.5
+    },
+    "Dieback": {
+        "description": "Pink Disease or Dieback is characterized by the progressive drying of branches starting from the tips. It often follows mechanical injury or pest damage. This is one of the most serious diseases affecting cashew production in humid regions.",
+        "symptoms": [
+            "White or pinkish fungal growth on the bark of branches",
+            "Drying of twigs from top to bottom",
+            "Bark splitting and peeling in advanced stages",
+            "Yellowing and sudden wilting of leaves on affected branches"
+        ],
+        "remediation": "Scrape off the pink fungal growth and apply Bordeaux paste (1:1 ratio). Severely affected branches must be pruned 10cm below the infection site and burnt immediately. Apply Trichoderma-based bioagent to cut surfaces.",
+        "severity": "Critical",
+        "scientific_name": "Phanerochaete salmonicolor",
+        "field_advice": [
+            "Avoid pruning during rainy season as wounds are more susceptible to infection.",
+            "Sterilize pruning tools with 70% alcohol between cuts to prevent disease transmission.",
+            "Monitor tree health closely for 2-3 weeks post-treatment for recurrence."
+        ],
+        "recovery_probability": 58,
+        "spread_velocity": "Very High",
+        "projected_spread_7d": 18.3
+    },
+    "Healthy": {
+        "description": "The specimen displays optimal physiological characteristics. Pigmentation and turgor pressure indicate a well-nourished system with no active pathogenic colonization. Continue current management practices to maintain plant health.",
+        "symptoms": [
+            "Glossy dark green leaf surface",
+            "Absence of chlorosis or necrosis",
+            "Robust cellular structure with clear venation",
+            "Active growth at apical meristems"
+        ],
+        "remediation": "Continue current irrigation and fertilization schedule. Weekly visual inspections are recommended for preventative monitoring. Maintain proper canopy management and pruning practices.",
+        "severity": "None",
+        "scientific_name": "Anacardium occidentale",
+        "field_advice": [
+            "Maintain consistent watering schedule (25-30mm per week during dry season).",
+            "Apply balanced NPK fertilizer (10:10:10) quarterly for optimal growth.",
+            "Conduct monthly visual inspections to catch any early signs of disease."
+        ],
+        "recovery_probability": 100,
+        "spread_velocity": "None",
+        "projected_spread_7d": 0.0
+    },
+    "Leaf Spot": {
+        "description": "A diverse group of fungal infections, often Pestalotiopsis or Cercospora species, causing localized leaf damage and reducing the tree's photosynthetic capacity. While generally less severe than other diseases, it can significantly impact yield if left untreated.",
+        "symptoms": [
+            "Small, circular greyish-brown spots with dark borders",
+            "Coalescence of spots forming large irregular dead patches",
+            "Shot-hole appearance where dead tissue falls out",
+            "Premature defoliation in severe outbreaks"
+        ],
+        "remediation": "Remove fallen leaves which act as a source of re-infection. Spray Carbendazim (0.1%) or Mancozeb (0.2%) at 15-day intervals during the rainy season. Ensure good drainage and avoid overhead irrigation.",
+        "severity": "Moderate",
+        "scientific_name": "Pestalotiopsis palmarum",
+        "field_advice": [
+            "Collect and burn fallen leaves to break disease cycle.",
+            "Improve soil drainage by creating raised beds or adding organic matter.",
+            "Avoid wetting foliage during irrigation; use drip irrigation when possible."
+        ],
+        "recovery_probability": 85,
+        "spread_velocity": "Medium",
+        "projected_spread_7d": 6.2
+    },
+    "Powdery Mildew": {
+        "description": "This is the most devastating disease for cashew production, specifically targeting the inflorescence (flowers), caused by the fungus Oidium anacardii. It can cause complete crop failure if not managed during flowering season.",
+        "symptoms": [
+            "Whitish powdery coating on leaves, twigs, and floral panicles",
+            "Browning and shedding of flowers before fruit set",
+            "Stunted growth and deformation of young vegetative tissue",
+            "Coating can be easily rubbed off by finger"
+        ],
+        "remediation": "Apply Wettable Sulphur (0.2%) or Hexaconazole (0.1%) during the pre-flowering and flowering stages. Avoid high-nitrogen fertilizers which promote soft, susceptible growth. Spray every 7-10 days during critical period.",
+        "severity": "Very High",
+        "scientific_name": "Oidium anacardii",
+        "field_advice": [
+            "Start preventative spraying 2-3 weeks before expected flowering (typically January-February).",
+            "Use balanced or low-nitrogen fertilizer to reduce susceptibility.",
+            "Ensure adequate spacing and pruning to improve air circulation in canopy."
+        ],
+        "recovery_probability": 68,
+        "spread_velocity": "Very High",
+        "projected_spread_7d": 15.8
+    }
+}

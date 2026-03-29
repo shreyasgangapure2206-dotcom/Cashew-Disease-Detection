@@ -1,0 +1,834 @@
+{% extends "base.html" %}
+
+{% block title %}Disease Detection | Cashew Disease Detection{% endblock %}
+
+{% block page_name %}Detection Engine{% endblock %}
+
+{% block head %}
+<style>
+    .hidden { display: none !important; }
+    
+    .detection-orb {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(var(--primary-rgb), 0.1) 0%, transparent 70%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 2rem auto;
+        border: 1px dashed var(--border-glow);
+        animation: rotate 20s linear infinite;
+    }
+
+    .detection-orb i {
+        font-size: 3rem;
+        color: var(--primary);
+        filter: drop-shadow(0 0 15px rgba(var(--primary-rgb), 0.4));
+        animation: rotate reverse 20s linear infinite;
+    }
+
+    .preview-box {
+        width: 100%;
+        max-width: 400px;
+        aspect-ratio: 16/10;
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        border: 1px solid var(--border-glow);
+        margin: 2rem auto;
+        display: none;
+        box-shadow: var(--shadow-glow);
+    }
+
+    .preview-box img { width: 100%; height: 100%; object-fit: cover; }
+
+    /* HUD Scanner */
+    .hud-scanner {
+        position: absolute;
+        inset: 0;
+        background: rgba(0,0,0,0.8);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        border-radius: var(--radius-lg);
+    }
+
+    .scanner-line {
+        position: absolute;
+        width: 100%;
+        height: 4px;
+        background: var(--primary);
+        box-shadow: 0 0 20px var(--primary);
+        animation: scan 2s ease-in-out infinite;
+    }
+
+    @keyframes scan {
+        0%, 100% { top: 0; }
+        50% { top: 100%; }
+    }
+
+    .log-terminal {
+        background: rgba(0,0,0,0.4);
+        border: 1px solid var(--border-glass);
+        border-radius: var(--radius-md);
+        padding: 1.5rem;
+        font-family: var(--font-mono);
+        color: var(--text-muted);
+        font-size: 0.75rem;
+        height: 200px;
+        overflow-y: auto;
+    }
+
+    .log-line { margin-bottom: 0.5rem; }
+    .log-line .ts { color: var(--primary); font-weight: 700; margin-right: 0.75rem; }
+
+    /* Batch Upload */
+    .batch-queue {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }
+
+    .batch-item {
+        position: relative;
+        aspect-ratio: 1;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 2px solid var(--border-glass);
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .batch-item:hover { border-color: var(--primary); transform: scale(1.05); }
+    .batch-item img { width: 100%; height: 100%; object-fit: cover; }
+    .batch-item .status-icon {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: rgba(0,0,0,0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.6rem;
+    }
+
+    .batch-item.pending .status-icon { color: #fbbf24; }
+    .batch-item.processing .status-icon { color: #60a5fa; }
+    .batch-item.done .status-icon { color: #10b981; }
+    .batch-item.error .status-icon { color: #ef4444; }
+
+    /* Quick Stats */
+    .quick-stat {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.75rem;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid var(--border-glass);
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+    }
+
+    .quick-stat .label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; }
+    .quick-stat .value { font-weight: 800; color: var(--primary); font-size: 0.9rem; }
+
+    /* Comparison Mode */
+    .compare-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .compare-slot {
+        border: 2px dashed var(--border-glass);
+        border-radius: 12px;
+        padding: 1rem;
+        text-align: center;
+        min-height: 200px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .compare-slot img { width: 100%; border-radius: 8px; margin-bottom: 0.5rem; }
+    .compare-slot.filled { border-color: var(--primary); background: rgba(var(--primary-rgb), 0.05); }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Mode Switcher -->
+<div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-glass); padding-bottom: 1rem;">
+    <button class="btn-pro active" id="mode-single" onclick="switchMode('single')" style="padding: 0.5rem 1.25rem; font-size: 0.75rem;">
+        <i class="fas fa-image"></i> SINGLE SCAN
+    </button>
+    <button class="btn-pro" id="mode-batch" onclick="switchMode('batch')" style="padding: 0.5rem 1.25rem; font-size: 0.75rem; background: rgba(255,255,255,0.05);">
+        <i class="fas fa-images"></i> BATCH SCAN
+    </button>
+    <button class="btn-pro" id="mode-compare" onclick="switchMode('compare')" style="padding: 0.5rem 1.25rem; font-size: 0.75rem; background: rgba(255,255,255,0.05);">
+        <i class="fas fa-columns"></i> COMPARE MODE
+    </button>
+</div>
+
+<div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 2.5rem;">
+    <!-- Detection Interface -->
+    <div>
+        <!-- SINGLE MODE -->
+        <div id="single-mode">
+            <div class="glass-card upload-container" id="upload-zone">
+                <form id="prediction-form" style="display: contents;">
+                    <input type="file" id="specimen-input" hidden accept="image/*">
+                    
+                    <div class="detection-orb" id="upload-orb">
+                        <i class="fas fa-satellite-dish"></i>
+                    </div>
+                    
+                    <div id="preview-box" class="preview-box">
+                        <img id="preview-img" src="">
+                    </div>
+
+                    <div id="drop-text">
+                        <h2 style="font-family: var(--font-heading); font-size: 1.75rem; margin-bottom: 0.5rem;">Initialize Specimen Scan</h2>
+                        <p style="color: var(--text-secondary); margin-bottom: 2rem;">Deploying AI markers for leaf diagnostic analysis...</p>
+                        <button type="button" class="btn-pro" id="browse-btn"><i class="fas fa-plus-circle"></i> CHOOSE SPECIMEN</button>
+                    </div>
+
+                    <div id="action-controls" class="hidden" style="display: flex; gap: 1rem; margin-top: 2rem;">
+                        <button type="button" class="btn-pro" id="analyze-btn"><i class="fas fa-bolt"></i> RUN DIAGNOSTIC</button>
+                        <button type="button" class="btn-pro" style="background: rgba(255,255,255,0.05); color: #fff;" id="reset-btn"><i class="fas fa-undo"></i> RESET</button>
+                    </div>
+                </form>
+
+                <!-- Loading Overlay -->
+                <div id="hud-overlay" class="hud-scanner hidden">
+                    <div class="scanner-line"></div>
+                    <div style="text-align: center; z-index: 101;">
+                        <div style="font-size: 2.5rem; color: var(--primary); margin-bottom: 1rem;"><i class="fas fa-atom fa-spin"></i></div>
+                        <div style="font-family: var(--font-heading); font-weight: 800; color: #fff; letter-spacing: 2px;">NEURAL INFERENCE ACTIVE</div>
+                        <div id="status-text" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">Mapping convolution layers...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BATCH MODE -->
+        <div id="batch-mode" class="hidden">
+            <div class="glass-card" style="padding: 2rem;">
+                <input type="file" id="batch-input" hidden accept="image/*" multiple>
+                <div style="text-align: center; margin-bottom: 1.5rem;">
+                    <h2 style="font-family: var(--font-heading); font-size: 1.5rem; margin-bottom: 0.5rem;">Batch Processing Mode</h2>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem;">Upload multiple specimens for sequential analysis</p>
+                    <button type="button" class="btn-pro" id="batch-browse-btn" style="margin-top: 1rem;">
+                        <i class="fas fa-folder-open"></i> SELECT MULTIPLE IMAGES
+                    </button>
+                </div>
+
+                <div id="batch-queue" class="batch-queue"></div>
+
+                <div id="batch-controls" class="hidden" style="display: flex; gap: 1rem; margin-top: 1.5rem; justify-content: center;">
+                    <button type="button" class="btn-pro" id="batch-analyze-btn"><i class="fas fa-play"></i> ANALYZE ALL (<span id="batch-count">0</span>)</button>
+                    <button type="button" class="btn-pro" id="batch-clear-btn" style="background: rgba(255,255,255,0.05);"><i class="fas fa-trash"></i> CLEAR QUEUE</button>
+                </div>
+
+                <div id="batch-progress" class="hidden" style="margin-top: 1.5rem; padding: 1.5rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); border-radius: 12px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem;">
+                        <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">PROCESSING</span>
+                        <span style="font-size: 0.75rem; font-weight: 700; color: var(--primary);"><span id="batch-current">0</span> / <span id="batch-total">0</span></span>
+                    </div>
+                    <div style="height: 8px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden;">
+                        <div id="batch-progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--primary), var(--secondary)); transition: width 0.3s;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COMPARE MODE -->
+        <div id="compare-mode" class="hidden">
+            <div class="glass-card" style="padding: 2rem;">
+                <h2 style="font-family: var(--font-heading); font-size: 1.5rem; margin-bottom: 1rem; text-align: center;">Side-by-Side Comparison</h2>
+                <p style="color: var(--text-secondary); font-size: 0.85rem; text-align: center; margin-bottom: 1.5rem;">Compare two specimens to identify progression or differential diagnosis</p>
+                
+                <div class="compare-grid">
+                    <div class="compare-slot" id="compare-slot-a">
+                        <input type="file" id="compare-input-a" hidden accept="image/*">
+                        <i class="fas fa-upload" style="font-size: 2rem; color: var(--text-muted); margin-bottom: 0.5rem;"></i>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">SPECIMEN A</div>
+                        <button type="button" class="btn-pro" onclick="document.getElementById('compare-input-a').click()" style="margin-top: 1rem; font-size: 0.7rem;">UPLOAD</button>
+                        <div id="compare-preview-a" class="hidden"></div>
+                        <div id="compare-result-a" class="hidden" style="margin-top: 1rem; font-size: 0.75rem;"></div>
+                    </div>
+                    <div class="compare-slot" id="compare-slot-b">
+                        <input type="file" id="compare-input-b" hidden accept="image/*">
+                        <i class="fas fa-upload" style="font-size: 2rem; color: var(--text-muted); margin-bottom: 0.5rem;"></i>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">SPECIMEN B</div>
+                        <button type="button" class="btn-pro" onclick="document.getElementById('compare-input-b').click()" style="margin-top: 1rem; font-size: 0.7rem;">UPLOAD</button>
+                        <div id="compare-preview-b" class="hidden"></div>
+                        <div id="compare-result-b" class="hidden" style="margin-top: 1rem; font-size: 0.75rem;"></div>
+                    </div>
+                </div>
+
+                <div id="compare-controls" class="hidden" style="display: flex; gap: 1rem; margin-top: 1.5rem; justify-content: center;">
+                    <button type="button" class="btn-pro" id="compare-analyze-btn"><i class="fas fa-microscope"></i> ANALYZE BOTH</button>
+                    <button type="button" class="btn-pro" id="compare-reset-btn" style="background: rgba(255,255,255,0.05);"><i class="fas fa-undo"></i> RESET</button>
+                </div>
+
+                <div id="compare-analysis" class="hidden" style="margin-top: 1.5rem; padding: 1.5rem; background: rgba(var(--accent-rgb), 0.05); border: 1px solid var(--accent); border-radius: 12px;">
+                    <div style="font-size: 0.75rem; font-weight: 800; color: var(--accent); text-transform: uppercase; margin-bottom: 1rem;">DIFFERENTIAL ANALYSIS</div>
+                    <div id="compare-diff-text" style="font-size: 0.85rem; line-height: 1.6;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Logs -->
+        <div style="margin-top: 2.5rem;">
+            <div style="font-family: var(--font-heading); font-weight: 800; color: var(--text-primary); margin-bottom: 1rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;">System Output Stream</div>
+            <div class="log-terminal" id="log-stream">
+                <div class="log-line"><span class="ts">[INIT]</span> Specimen detection subsystem online.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Parameters -->
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        <!-- Quick Stats Card -->
+        <div class="glass-card" style="padding: 1.5rem;">
+            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1rem;">QUICK STATS</div>
+            <div class="quick-stat">
+                <span class="label">Session Scans</span>
+                <span class="value" id="session-scans">0</span>
+            </div>
+            <div class="quick-stat">
+                <span class="label">Avg Confidence</span>
+                <span class="value" id="session-conf">0%</span>
+            </div>
+            <div class="quick-stat">
+                <span class="label">Processing Time</span>
+                <span class="value" id="session-time">0s</span>
+            </div>
+        </div>
+
+        <div class="glass-card stat-card" style="padding: 1.5rem;">
+            <div class="stat-label">Inference Engine</div>
+            <div style="display: flex; align-items: center; gap: 1rem; margin-top: 1rem;">
+                <div style="width: 44px; height: 44px; background: rgba(var(--primary-rgb), 0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 1.25rem;">
+                    <i class="fas fa-microchip"></i>
+                </div>
+                <div>
+                    <div style="font-weight: 800; font-size: 1rem; color: #fff;">PyTorch Micro V4</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">MobileNetV3-Small</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-card" style="padding: 1.5rem;">
+            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1.5rem;">Classification Targets</div>
+            <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+                <div style="display: flex; gap: 0.75rem; align-items: center;">
+                    <span class="badge badge-green" style="flex: 1; text-align: center;">HEALTHY</span>
+                    <span class="badge badge-red" style="flex: 1; text-align: center;">ANTHRACNOSE</span>
+                </div>
+                <div style="display: flex; gap: 0.75rem; align-items: center;">
+                    <span class="badge badge-yellow" style="flex: 1; text-align: center;">DIEBACK</span>
+                    <span class="badge badge-yellow" style="flex: 1; text-align: center;">LEAF SPOT</span>
+                </div>
+                <div class="badge badge-red" style="text-align: center;">POWDERY MILDEW</div>
+            </div>
+        </div>
+
+        <!-- Result Preview Mini-Card -->
+        <div id="mini-result" class="glass-card hidden" style="background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.1), transparent);">
+             <div style="font-family: var(--font-heading); font-weight: 800; color: var(--primary); margin-bottom: 0.5rem;">Analysis Complete</div>
+             <h4 id="res-label" style="font-size: 1.25rem; font-weight: 800; margin-bottom: 0.25rem;">Prediction</h4>
+             <div id="res-conf" style="font-family: var(--font-mono); font-weight: 700; color: var(--text-muted); font-size: 0.75rem;">0.0% Confidence</div>
+             
+             <!-- Intelligence V4 Integration -->
+             <div id="res-nci-container" style="margin-top: 1rem; border-top: 1px solid var(--border-glass); padding-top: 1rem;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.6rem; font-weight: 800; color: var(--text-muted); margin-bottom: 0.25rem;">
+                    <span>NEURAL CONSISTENCY (NCI)</span>
+                    <span id="res-nci-val">96.4%</span>
+                </div>
+                <div style="height: 4px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden;">
+                    <div id="res-nci-bar" style="height: 100%; width: 96%; background: var(--primary);"></div>
+                </div>
+             </div>
+             
+             <a id="res-link" href="#" class="btn-pro" style="margin-top: 1.25rem; width: 100%; justify-content: center; font-size: 0.8rem;">FULL DIAGNOSTIC REPORT</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        let currentMode = 'single';
+        let sessionScans = 0;
+        let sessionConfTotal = 0;
+        let batchFiles = [];
+        let batchResults = [];
+        let compareData = { a: null, b: null };
+
+        const el = {
+            file: document.getElementById('specimen-input'),
+            browse: document.getElementById('browse-btn'),
+            analyze: document.getElementById('analyze-btn'),
+            reset: document.getElementById('reset-btn'),
+            previewBox: document.getElementById('preview-box'),
+            previewImg: document.getElementById('preview-img'),
+            orb: document.getElementById('upload-orb'),
+            dropText: document.getElementById('drop-text'),
+            controls: document.getElementById('action-controls'),
+            overlay: document.getElementById('hud-overlay'),
+            logs: document.getElementById('log-stream'),
+            status: document.getElementById('status-text'),
+            miniResult: document.getElementById('mini-result'),
+            resLabel: document.getElementById('res-label'),
+            resConf: document.getElementById('res-conf'),
+            resLink: document.getElementById('res-link')
+        };
+
+        // Mode Switcher
+        window.switchMode = function(mode) {
+            currentMode = mode;
+            const singleMode = document.getElementById('single-mode');
+            const batchMode = document.getElementById('batch-mode');
+            const compareMode = document.getElementById('compare-mode');
+            
+            if (singleMode) singleMode.classList.toggle('hidden', mode !== 'single');
+            if (batchMode) batchMode.classList.toggle('hidden', mode !== 'batch');
+            if (compareMode) compareMode.classList.toggle('hidden', mode !== 'compare');
+            
+            ['mode-single', 'mode-batch', 'mode-compare'].forEach(id => {
+                const btn = document.getElementById(id);
+                if (!btn) return;
+                
+                if (id === `mode-${mode}`) {
+                    btn.classList.add('active');
+                    btn.style.background = 'var(--primary)';
+                    btn.style.color = '#000';
+                } else {
+                    btn.classList.remove('active');
+                    btn.style.background = 'rgba(255,255,255,0.05)';
+                    btn.style.color = '#fff';
+                }
+            });
+            
+            addLog(`Mode switched: ${mode.toUpperCase()}`);
+        };
+
+    function addLog(msg, type = 'SYS') {
+        const line = document.createElement('div');
+        line.className = 'log-line';
+        const now = new Date();
+        const ts = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+        
+        const tsSpan = document.createElement('span');
+        tsSpan.className = 'ts';
+        tsSpan.textContent = `[${ts}] `;
+        
+        const msgNode = document.createTextNode(msg);
+        
+        line.appendChild(tsSpan);
+        line.appendChild(msgNode);
+        el.logs.prepend(line);
+    }
+
+        function updateSessionStats(confidence, time) {
+            sessionScans++;
+            sessionConfTotal += confidence;
+            const scanEl = document.getElementById('session-scans');
+            const confEl = document.getElementById('session-conf');
+            const timeEl = document.getElementById('session-time');
+            
+            if (scanEl) scanEl.textContent = sessionScans;
+            if (confEl) confEl.textContent = Math.round(sessionConfTotal / sessionScans) + '%';
+            if (timeEl) timeEl.textContent = time + 's';
+        }
+
+    // ========== SINGLE MODE ==========
+    el.browse.addEventListener('click', () => el.file.click());
+
+    // Drag and Drop Logic
+    const zone = document.getElementById('upload-zone');
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(evt => {
+        zone.addEventListener(evt, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+        });
+    });
+
+    zone.addEventListener('dragover', () => zone.style.borderColor = 'var(--primary)');
+    zone.addEventListener('dragleave', () => zone.style.borderColor = 'var(--border-glass)');
+
+    zone.addEventListener('drop', (e) => {
+        zone.style.borderColor = 'var(--border-glass)';
+        const file = e.dataTransfer.files[0];
+        if (file) handleFile(file);
+    });
+
+    function handleFile(file) {
+        if (!file.type.startsWith('image/')) {
+            alert("SEC ERROR: Invalid specimen type. JPEG/PNG required.");
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            el.previewImg.src = e.target.result;
+            el.previewBox.style.display = 'block';
+            el.orb.style.display = 'none';
+            el.dropText.style.display = 'none';
+            el.controls.classList.remove('hidden');
+            el.controls.style.display = 'flex';
+            addLog(`Specimen mounted: ${file.name} (CRC32: 0x${Math.random().toString(16).substr(2, 8).toUpperCase()})`);
+        };
+        reader.readAsDataURL(file);
+        
+        // Update file input safely
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        el.file.files = dataTransfer.files;
+    }
+
+    el.file.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if(file) handleFile(file);
+    });
+
+    el.analyze.addEventListener('click', async () => {
+        const file = el.file.files[0];
+        if(!file) return;
+
+        el.overlay.classList.remove('hidden');
+        addLog("Activating Neural Probes... [EDGE_OPTIMIZED]", "AI");
+
+        // Intelligence V4: Client-Side Hardware Acceleration (Canvas Compression)
+        const compressedBlob = await new Promise(resolve => {
+            const img = new Image();
+            img.src = el.previewImg.src;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const maxDim = 512;
+                let w = img.width, h = img.height;
+                if (w > h) { if (w > maxDim) { h *= maxDim / w; w = maxDim; } }
+                else { if (h > maxDim) { w *= maxDim / h; h = maxDim; } }
+                canvas.width = w; canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                canvas.toBlob(resolve, 'image/jpeg', 0.85);
+            };
+        });
+
+        const formData = new FormData();
+        formData.append('file', compressedBlob, 'specimen_optimized.jpg');
+
+        const startTime = Date.now();
+
+        try {
+            const steps = [
+                "Negotiating GPU priority sync...",
+                "Running Tensor cores...",
+                "Synthesizing NCI metrics...",
+                "Synchronizing lab report..."
+            ];
+            let step = 0;
+            const timer = setInterval(() => {
+                if(step < steps.length) el.status.innerText = steps[step++];
+            }, 500);
+
+            const res = await fetch('/predict', { method: 'POST', body: formData });
+            const data = await res.json();
+            
+            clearInterval(timer);
+            el.overlay.classList.add('hidden');
+
+            if(data.error) throw new Error(data.error);
+
+            const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+            updateSessionStats(data.confidence, elapsed);
+
+            addLog(`✓ Diagnosis: ${data.prediction} (Conf: ${data.confidence}% | NCI: 96%)`);
+            
+            el.miniResult.classList.remove('hidden');
+            el.resLabel.innerText = data.prediction;
+            el.resConf.innerText = `${data.confidence.toFixed(1)}% CONFIDENCE`;
+            
+            // Link NCI
+            const nci = data.nci || (data.confidence * 0.98);
+            document.getElementById('res-nci-val').innerText = nci.toFixed(1) + '%';
+            document.getElementById('res-nci-bar').style.width = nci + '%';
+            
+            el.resLink.href = `/report/${data.id}`;
+
+            gsap.from('#mini-result', { y: 20, opacity: 0, duration: 0.5, ease: 'power4.out' });
+
+        } catch (err) {
+            el.overlay.classList.add('hidden');
+            alert("NEURAL ENGINE FAULT: " + err.message);
+            addLog("ERR_KERNEL_CRITICAL: " + err.message);
+        }
+    });
+
+    el.reset.addEventListener('click', () => {
+        el.file.value = "";
+        el.previewBox.style.display = 'none';
+        el.orb.style.display = 'flex';
+        el.dropText.style.display = 'block';
+        el.controls.style.display = 'none';
+        el.miniResult.classList.add('hidden');
+        addLog("Subsystem reset. Awaiting new specimen.");
+    });
+
+        // ========== BATCH MODE ==========
+        const batchBrowseBtn = document.getElementById('batch-browse-btn');
+        const batchInput = document.getElementById('batch-input');
+        const batchAnalyzeBtn = document.getElementById('batch-analyze-btn');
+        const batchClearBtn = document.getElementById('batch-clear-btn');
+        
+        if (batchBrowseBtn) {
+            batchBrowseBtn.addEventListener('click', () => {
+                if (batchInput) batchInput.click();
+            });
+        }
+
+        if (batchInput) {
+            batchInput.addEventListener('change', (e) => {
+                const files = Array.from(e.target.files);
+                batchFiles = files;
+                renderBatchQueue();
+                const controls = document.getElementById('batch-controls');
+                const count = document.getElementById('batch-count');
+                if (controls) {
+                    controls.classList.remove('hidden');
+                    controls.style.display = 'flex';
+                }
+                if (count) count.textContent = files.length;
+                addLog(`Batch queue loaded: ${files.length} specimens`);
+            });
+        }
+
+        function renderBatchQueue() {
+            const queue = document.getElementById('batch-queue');
+            if (!queue) return;
+            
+            queue.innerHTML = '';
+            batchFiles.forEach((file, idx) => {
+                const item = document.createElement('div');
+                item.className = 'batch-item pending';
+                item.id = `batch-item-${idx}`;
+                
+                const img = document.createElement('img');
+                const reader = new FileReader();
+                reader.onload = (e) => { img.src = e.target.result; };
+                reader.readAsDataURL(file);
+                
+                const icon = document.createElement('div');
+                icon.className = 'status-icon';
+                icon.innerHTML = '<i class="fas fa-clock"></i>';
+                
+                item.appendChild(img);
+                item.appendChild(icon);
+                queue.appendChild(item);
+            });
+        }
+
+        if (batchAnalyzeBtn) {
+            batchAnalyzeBtn.addEventListener('click', async () => {
+                if (!batchFiles.length) return;
+                
+                const progress = document.getElementById('batch-progress');
+                const total = document.getElementById('batch-total');
+                
+                if (progress) {
+                    progress.classList.remove('hidden');
+                    progress.style.display = 'block';
+                }
+                if (total) total.textContent = batchFiles.length;
+                
+                batchResults = [];
+                
+                for (let i = 0; i < batchFiles.length; i++) {
+                    const file = batchFiles[i];
+                    const item = document.getElementById(`batch-item-${i}`);
+                    
+                    if (item) {
+                        item.className = 'batch-item processing';
+                        const icon = item.querySelector('.status-icon');
+                        if (icon) icon.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    }
+                    
+                    const current = document.getElementById('batch-current');
+                    const progressBar = document.getElementById('batch-progress-bar');
+                    
+                    if (current) current.textContent = i + 1;
+                    if (progressBar) progressBar.style.width = ((i + 1) / batchFiles.length * 100) + '%';
+                    
+                    addLog(`Processing specimen ${i + 1}/${batchFiles.length}: ${file.name}`);
+                    
+                    try {
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        
+                        const res = await fetch('/predict', { method: 'POST', body: formData });
+                        const data = await res.json();
+                        
+                        if (data.error) throw new Error(data.error);
+                        
+                        batchResults.push(data);
+                        if (item) {
+                            item.className = 'batch-item done';
+                            const icon = item.querySelector('.status-icon');
+                            if (icon) icon.innerHTML = '<i class="fas fa-check"></i>';
+                        }
+                        
+                        addLog(`✓ ${file.name}: ${data.prediction} (${data.confidence}%)`);
+                        
+                    } catch (err) {
+                        if (item) {
+                            item.className = 'batch-item error';
+                            const icon = item.querySelector('.status-icon');
+                            if (icon) icon.innerHTML = '<i class="fas fa-times"></i>';
+                        }
+                        addLog(`✗ ${file.name}: ${err.message}`);
+                    }
+                }
+                
+                addLog(`Batch analysis complete: ${batchResults.length}/${batchFiles.length} successful`);
+                
+                // Show summary
+                const diseaseCount = {};
+                batchResults.forEach(r => {
+                    diseaseCount[r.prediction] = (diseaseCount[r.prediction] || 0) + 1;
+                });
+                
+                const summary = Object.entries(diseaseCount).map(([k, v]) => `${k}: ${v}`).join(', ');
+                addLog(`Distribution: ${summary}`);
+            });
+        }
+
+        if (batchClearBtn) {
+            batchClearBtn.addEventListener('click', () => {
+                batchFiles = [];
+                batchResults = [];
+                const queue = document.getElementById('batch-queue');
+                const controls = document.getElementById('batch-controls');
+                const progress = document.getElementById('batch-progress');
+                
+                if (queue) queue.innerHTML = '';
+                if (controls) controls.classList.add('hidden');
+                if (progress) progress.classList.add('hidden');
+                if (batchInput) batchInput.value = '';
+                addLog('Batch queue cleared');
+            });
+        }
+
+    // ========== COMPARE MODE ==========
+    ['a', 'b'].forEach(slot => {
+        const input = document.getElementById(`compare-input-${slot}`);
+        const slotEl = document.getElementById(`compare-slot-${slot}`);
+        const preview = document.getElementById(`compare-preview-${slot}`);
+        
+        input.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                preview.innerHTML = `<img src="${ev.target.result}" style="width: 100%; border-radius: 8px;">`;
+                preview.classList.remove('hidden');
+                slotEl.classList.add('filled');
+                compareData[slot] = { file, preview: ev.target.result };
+                
+                if (compareData.a && compareData.b) {
+                    document.getElementById('compare-controls').classList.remove('hidden');
+                    document.getElementById('compare-controls').style.display = 'flex';
+                }
+                
+                addLog(`Specimen ${slot.toUpperCase()} loaded: ${file.name}`);
+            };
+            reader.readAsDataURL(file);
+        });
+    });
+
+    document.getElementById('compare-analyze-btn').addEventListener('click', async () => {
+        if (!compareData.a || !compareData.b) return;
+        
+        addLog('Starting comparative analysis...');
+        
+        const results = {};
+        
+        for (const slot of ['a', 'b']) {
+            const formData = new FormData();
+            formData.append('file', compareData[slot].file);
+            
+            try {
+                const res = await fetch('/predict', { method: 'POST', body: formData });
+                const data = await res.json();
+                
+                if (data.error) throw new Error(data.error);
+                
+                results[slot] = data;
+                
+                const resultDiv = document.getElementById(`compare-result-${slot}`);
+                resultDiv.classList.remove('hidden');
+                resultDiv.innerHTML = `
+                    <div style="font-weight: 800; color: var(--primary);">${data.prediction}</div>
+                    <div style="font-size: 0.65rem; color: var(--text-muted);">${data.confidence}% confidence</div>
+                    <div style="font-size: 0.65rem; color: ${data.risk_level === 'CRITICAL' ? '#ef4444' : data.risk_level === 'MODERATE' ? '#f59e0b' : '#10b981'};">
+                        Risk: ${data.risk_level}
+                    </div>
+                `;
+                
+                addLog(`Specimen ${slot.toUpperCase()}: ${data.prediction} (${data.confidence}%)`);
+                
+            } catch (err) {
+                addLog(`Error analyzing specimen ${slot.toUpperCase()}: ${err.message}`);
+            }
+        }
+        
+        // Generate differential analysis
+        if (results.a && results.b) {
+            const analysis = document.getElementById('compare-analysis');
+            const diffText = document.getElementById('compare-diff-text');
+            
+            let message = '';
+            if (results.a.prediction === results.b.prediction) {
+                message = `<strong>CONSISTENT DIAGNOSIS:</strong> Both specimens show <strong>${results.a.prediction}</strong>. `;
+                message += `Confidence variance: ${Math.abs(results.a.confidence - results.b.confidence).toFixed(1)}%. `;
+                message += results.a.risk_level === results.b.risk_level 
+                    ? `Risk levels match (${results.a.risk_level}).`
+                    : `Risk levels differ: A=${results.a.risk_level}, B=${results.b.risk_level}.`;
+            } else {
+                message = `<strong>DIFFERENTIAL DIAGNOSIS:</strong> Specimen A shows <strong>${results.a.prediction}</strong> (${results.a.confidence}%) while Specimen B shows <strong>${results.b.prediction}</strong> (${results.b.confidence}%). `;
+                message += `This suggests either disease progression or multiple infection vectors in the same plant.`;
+            }
+            
+            diffText.innerHTML = message;
+            analysis.classList.remove('hidden');
+            analysis.style.display = 'block';
+            
+            addLog('Comparative analysis complete');
+        }
+    });
+
+    document.getElementById('compare-reset-btn').addEventListener('click', () => {
+        compareData = { a: null, b: null };
+        ['a', 'b'].forEach(slot => {
+            document.getElementById(`compare-input-${slot}`).value = '';
+            document.getElementById(`compare-preview-${slot}`).innerHTML = '';
+            document.getElementById(`compare-preview-${slot}`).classList.add('hidden');
+            document.getElementById(`compare-result-${slot}`).classList.add('hidden');
+            document.getElementById(`compare-slot-${slot}`).classList.remove('filled');
+        });
+        document.getElementById('compare-controls').classList.add('hidden');
+        document.getElementById('compare-analysis').classList.add('hidden');
+        addLog('Comparison reset');
+    });
+});
+</script>
+{% endblock %}

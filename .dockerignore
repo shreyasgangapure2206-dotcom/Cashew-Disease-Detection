@@ -1,0 +1,65 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+tf_env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation (not needed in container)
+*.md
+!README.md
+
+# Logs
+logs/
+*.log
+
+# Dataset (mount as volume instead)
+dataset/
+
+# Uploads (mount as volume)
+static/uploads/*
+!static/uploads/.gitkeep
+
+# Instance (mount as volume)
+instance/
+
+# Development files
+.env
+.env.example
+*.ipynb
+.ipynb_checkpoints/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Archives
+*.zip
+*.7z
+*.tar.gz

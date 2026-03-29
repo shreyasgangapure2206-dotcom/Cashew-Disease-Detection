@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}Records History | Cashew Disease Detection{% endblock %}
+
+{% block page_name %}Diagnostic Records{% endblock %}
+
+{% block head %}
+<style>
+    .history-card-custom {
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+        padding: 0;
+    }
+    
+    .history-card-custom:hover {
+        transform: translateY(-8px) scale(1.02);
+        box-shadow: var(--shadow-lg), var(--shadow-glow);
+    }
+
+    .filter-chip {
+        padding: 0.5rem 1.25rem;
+        border-radius: 100px;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid var(--border-glass);
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .filter-chip:hover {
+        background: rgba(255,255,255,0.08);
+        border-color: var(--text-muted);
+    }
+
+    .filter-chip.active {
+        background: var(--primary);
+        color: #000;
+        border-color: var(--primary);
+        box-shadow: 0 0 20px rgba(var(--primary-rgb), 0.3);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3rem;">
+    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;" id="filter-container">
+        <button class="filter-chip active" data-filter="all">All Records</button>
+        <button class="filter-chip" data-filter="Healthy">Healthy</button>
+        <button class="filter-chip" data-filter="Anthracnose">Anthracnose</button>
+        <button class="filter-chip" data-filter="Dieback">Dieback</button>
+        <button class="filter-chip" data-filter="Leaf Spot">Leaf Spot</button>
+        <button class="filter-chip" data-filter="Powdery Mildew">Powdery Mildew</button>
+    </div>
+    
+    <button onclick="clearHistory()" class="btn-pro" style="background: rgba(255, 51, 102, 0.1); color: #ff3366; border: 1px solid rgba(255, 51, 102, 0.2);">
+        <i class="fas fa-trash-alt"></i> Purge Records
+    </button>
+</div>
+
+<div class="stats-grid" style="margin-bottom: 4rem;">
+    <div class="glass-card stat-card" style="padding: 1.5rem;">
+        <div class="stat-label">Total Volume</div>
+        <div class="stat-value" id="history-total">0</div>
+        <div class="stat-badge">DB SIZE</div>
+    </div>
+    <div class="glass-card stat-card" style="padding: 1.5rem;">
+        <div class="stat-label">Optimal Health</div>
+        <div class="stat-value" id="history-healthy">0</div>
+        <div class="stat-badge">STATUS</div>
+    </div>
+    <div class="glass-card stat-card" style="padding: 1.5rem;">
+        <div class="stat-label">Avg Confidence</div>
+        <div class="stat-value" id="history-avg">0%</div>
+        <div class="stat-badge">AI META</div>
+    </div>
+</div>
+
+<div style="position: relative; padding-left: 2rem;">
+    <!-- Timeline Line -->
+    <div style="position: absolute; left: 0.5rem; top: 0; bottom: 0; width: 2px; background: linear-gradient(to bottom, var(--primary), var(--secondary), transparent); opacity: 0.3;"></div>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 3rem;" id="records-grid">
+        <!-- Dynamic Content -->
+    </div>
+</div>
+
+<!-- Empty State -->
+<div id="empty-state" class="glass-card hidden" style="text-align: center; padding: 6rem 2rem;">
+    <div style="font-size: 4rem; color: var(--text-muted); opacity: 0.2; margin-bottom: 2rem;"><i class="fas fa-folder-open"></i></div>
+    <h2 style="font-family: var(--font-heading); color: var(--text-muted);">No Diagnostic Data Found</h2>
+    <p style="color: var(--text-muted); margin-top: 1rem;">Start a new detection scan to populate the database.</p>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+let allData = [];
+let currentFilter = 'all';
+
+async function syncHistory() {
+    try {
+        const res = await fetch('/api/history');
+        const data = await res.json();
+        allData = data.reverse();
+        updateStats();
+        renderGrid();
+    } catch (e) {
+        console.error("HISTORY_SYNC_ERR:", e);
+    }
+}
+
+function updateStats() {
+    const healthy = allData.filter(d => d.prediction === 'Healthy').length;
+    const avg = allData.length > 0 ? (allData.reduce((s,d) => s+d.confidence, 0) / allData.length).toFixed(1) : 0;
+
+    document.getElementById('history-total').innerText = allData.length;
+    document.getElementById('history-healthy').innerText = healthy;
+    document.getElementById('history-avg').innerText = avg + '%';
+}
+
+function renderGrid() {
+    const grid = document.getElementById('records-grid');
+    const empty = document.getElementById('empty-state');
+    const filtered = currentFilter === 'all' ? allData : allData.filter(d => d.prediction === currentFilter);
+
+    if (filtered.length === 0) {
+        grid.style.display = 'none';
+        empty.classList.remove('hidden');
+        return;
+    }
+
+    grid.style.display = 'grid';
+    empty.classList.add('hidden');
+
+    grid.innerHTML = filtered.map(item => {
+        let badgeColor = 'badge-green';
+        if (item.prediction !== 'Healthy') badgeColor = 'badge-red';
+        
+        // Quality override: prioritize low-confidence alerts
+        if (item.confidence < 50) badgeColor = 'badge-red';
+        else if (item.confidence < 75) badgeColor = 'badge-yellow';
+
+        return `
+            <div class="glass-card history-card-custom" onclick="window.location.href='/report/${item.id}'">
+                <div style="width: 100%; aspect-ratio: 16/10; overflow: hidden; border-bottom: 1px solid var(--border-glass);">
+                    <img src="/${item.image}" style="width:100%; height:100%; object-fit: cover;" loading="lazy">
+                </div>
+                <div style="padding: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                        <div>
+                            <div style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.25rem;">DETECTION RESULT</div>
+                            <h3 style="font-family: var(--font-heading); font-weight: 800; font-size: 1.25rem;">${item.prediction}</h3>
+                        </div>
+                        <span class="badge ${badgeColor}">${item.confidence}%</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 1rem; border-top: 1px solid var(--border-glass);">
+                        <span style="font-size: 0.75rem; color: var(--text-muted);"><i class="far fa-calendar-alt" style="margin-right: 0.4rem;"></i>${item.date}</span>
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">#${item.id}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    // Immediate Reveal (Optimized for 'instant' feel)
+    document.querySelectorAll('.history-card-custom').forEach(el => {
+        el.style.opacity = '1';
+        el.style.transform = 'none';
+    });
+}
+
+function clearHistory() {
+    if(!confirm("DANGER: This will permanently delete all agricultural diagnostic records. Proceed?")) return;
+    fetch('/api/history/clear', { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                allData = [];
+                renderGrid();
+                updateStats();
+            }
+        });
+}
+
+document.querySelectorAll('.filter-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.filter;
+        renderGrid();
+    });
+});
+
+syncHistory();
+setInterval(syncHistory, 30000);
+</script>
+{% endblock %}

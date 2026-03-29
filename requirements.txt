@@ -1,0 +1,35 @@
+Flask==3.0.0
+Flask-Compress==1.14
+Werkzeug==3.0.1
+
+# Database
+Flask-SQLAlchemy==3.1.1
+SQLAlchemy==2.0.23
+
+# Deep Learning - PyTorch
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.1.0+cpu
+torchvision==0.16.0+cpu
+
+# Computer Vision
+gunicorn==21.2.0
+opencv-python-headless==4.8.1.78
+Pillow==10.1.0
+
+# Scientific Computing
+numpy==1.24.3
+
+# Logging
+loguru==0.7.2
+
+# HTTP Requests
+requests==2.31.0
+
+# Optional: TensorFlow (if using Keras models)
+# tensorflow==2.15.0
+
+# Optional: ONNX Runtime
+# onnxruntime==1.16.3
+
+# Development
+python-dotenv==1.0.0

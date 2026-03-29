@@ -1,0 +1,496 @@
+{% extends "base.html" %}
+{% block title %}Data Intelligence | CashewAI{% endblock %}
+{% block head %}
+<style>
+    :root {
+        --dc-primary: #05ffa1;
+        --dc-secondary: #0ea5e9;
+        --dc-accent: #a855f7;
+    }
+
+    .dc-wrap { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+    
+    .dc-header { 
+        padding: 2rem; 
+        margin-bottom: 2rem; 
+        background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.1), transparent); 
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-glass);
+    }
+
+    .dc-title { 
+        font-family: var(--font-heading); 
+        font-size: 2rem; 
+        font-weight: 800; 
+        background: linear-gradient(to right, #fff, var(--dc-primary));
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .dc-sub { font-size: 0.9rem; color: var(--text-secondary); margin-top: 0.5rem; font-family: var(--font-mono); }
+
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+
+    .stat-card { 
+        background: var(--bg-card); 
+        backdrop-filter: var(--glass-blur); 
+        border: 1px solid var(--border-glass); 
+        border-radius: var(--radius-md); 
+        padding: 1.5rem; 
+        position: relative; 
+        overflow: hidden; 
+    }
+
+    .stat-card::after { 
+        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; 
+        background: linear-gradient(90deg, transparent, var(--dc-primary), transparent); 
+    }
+
+    .stat-lbl { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 700; margin-bottom: 0.75rem; }
+    .stat-val { font-family: var(--font-mono); font-size: 2rem; font-weight: 800; color: #fff; }
+    .stat-sub { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; }
+
+    .panel { 
+        background: var(--bg-card); 
+        backdrop-filter: var(--glass-blur); 
+        border: 1px solid var(--border-glass); 
+        border-radius: var(--radius-lg); 
+        padding: 2rem; 
+        margin-bottom: 2rem; 
+    }
+
+    .panel-head { 
+        font-family: var(--font-heading); 
+        font-size: 1.1rem; 
+        font-weight: 700; 
+        color: #fff; 
+        margin-bottom: 1.5rem; 
+        display: flex; 
+        align-items: center; 
+        gap: 0.75rem; 
+    }
+
+    .panel-head::before { content: '◆'; color: var(--dc-primary); font-size: 12px; }
+
+    .btn-row { display: flex; gap: 1rem; flex-wrap: wrap; }
+
+    /* Labeler Layout */
+    .labeler-wrap { display: grid; grid-template-columns: 1fr 320px; gap: 2rem; }
+    #labelCanvas { cursor: crosshair; border: 2px solid var(--border-glass); border-radius: var(--radius-md); display: block; max-width: 100%; width: 100%; transition: all 0.3s; }
+    #labelCanvas:hover { border-color: var(--dc-primary); }
+
+    .label-sidebar { display: flex; flex-direction: column; gap: 1.5rem; }
+
+    .class-btn { 
+        padding: 0.75rem 1rem; 
+        border-radius: var(--radius-md); 
+        font-family: var(--font-mono); 
+        font-size: 0.75rem; 
+        font-weight: 700; 
+        cursor: pointer; 
+        border: 2px solid rgba(255,255,255,0.05); 
+        transition: all 0.2s; 
+        text-align: left; 
+        background: rgba(255,255,255,0.02);
+        color: var(--text-secondary);
+    }
+
+    .class-btn.active { border-color: var(--dc-primary); background: rgba(var(--primary-rgb), 0.1); color: var(--dc-primary); }
+
+    .bbox-list { max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; }
+    .bbox-item { 
+        display: flex; justify-content: space-between; align-items: center; 
+        padding: 0.75rem 1rem; border-radius: var(--radius-sm); 
+        font-family: var(--font-mono); font-size: 0.7rem; 
+        background: rgba(255,255,255,0.03); 
+        border: 1px solid var(--border-glass);
+    }
+
+    .bbox-del { cursor: pointer; color: #ff3366; font-size: 1.1rem; }
+
+    .drop-zone { 
+        border: 2px dashed var(--border-glass); 
+        border-radius: var(--radius-lg); 
+        padding: 4rem 2rem; 
+        text-align: center; 
+        cursor: pointer; 
+        transition: all 0.3s; 
+        color: var(--text-muted); 
+        font-family: var(--font-mono); 
+        font-size: 0.9rem; 
+    }
+
+    #statusBox {
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        background: rgba(0,0,0,0.3);
+        padding: 1rem;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border-glass);
+        color: var(--dc-primary);
+        min-height: 50px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dc-wrap">
+    <div class="dc-header">
+        <div class="dc-title">INTELLECTUAL DATA CENTER</div>
+        <div class="dc-sub">Automated Dataset Curation • YOLO Labeling Engine • Pathogen Training Pipeline</div>
+    </div>
+
+    <div class="stat-grid" id="statsGrid">
+        <div class="stat-card">
+            <div class="stat-lbl">Specimen Images</div>
+            <div class="stat-val" id="totalImages">—</div>
+            <div class="stat-sub">Valid datasets</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-lbl">YOLO Annotations</div>
+            <div class="stat-val" id="totalLabels">—</div>
+            <div class="stat-sub">Confirmed labels</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-lbl">Active Classes</div>
+            <div class="stat-val" id="totalClasses">5</div>
+            <div class="stat-sub">Cashew pathogens</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-lbl">Dataset Health</div>
+            <div class="stat-val" id="healthScore" style="color: var(--dc-primary);">—</div>
+            <div class="stat-sub" id="healthLabel">Calculating index...</div>
+        </div>
+    </div>
+
+    <!-- LABELING TOOL -->
+    <div class="panel">
+        <div class="panel-head">Diagnostic Labeling Tool</div>
+
+        <div class="drop-zone" id="dropZone" onclick="document.getElementById('labelFileInput').click()">
+            <i class="fas fa-file-import" style="font-size: 2rem; margin-bottom: 1rem; color: var(--dc-primary);"></i>
+            <div>Drop specimens here or click to import to buffer</div>
+            <input type="file" id="labelFileInput" accept="image/*" multiple style="display:none" onchange="loadLabelImages(this.files)">
+        </div>
+
+        <div id="labelNav" style="display:none; margin-top:1.5rem; align-items:center; gap:1rem; flex-wrap:wrap;">
+            <button class="btn-pro" style="padding: 0.5rem 1rem; font-size: 0.7rem;" onclick="prevImage()">◀ PREV</button>
+            <span id="labelImgCounter" style="font-family:var(--font-mono); font-size:0.8rem; color: #fff;">0 / 0</span>
+            <button class="btn-pro" style="padding: 0.5rem 1rem; font-size: 0.7rem;" onclick="nextImage()">NEXT ▶</button>
+            <span id="labelImgName" style="font-family:var(--font-mono); font-size:0.75rem; color: var(--text-muted); margin-left: auto;"></span>
+        </div>
+
+        <div class="labeler-wrap" id="labelerWrap" style="display:none; margin-top:2rem;">
+            <div>
+                <canvas id="labelCanvas"></canvas>
+            </div>
+            <div class="label-sidebar">
+                <div style="font-size:0.7rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px;">PATHOGEN TYPE</div>
+                <div id="classBtns" style="display:grid; grid-template-columns: 1fr; gap:0.5rem;"></div>
+
+                <div style="font-size:0.7rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px;">REGIONS (<span id="bboxCount">0</span>)</div>
+                <div class="bbox-list" id="bboxList"></div>
+
+                <div style="display:flex; flex-direction:column; gap:0.75rem; margin-top: 1rem;">
+                    <button class="btn-pro" style="background: rgba(var(--dc-primary-rgb), 0.1); color: var(--dc-primary); border: 1px solid var(--dc-primary);" onclick="runAutoLabel()">AI AUTO-LABEL (BETA)</button>
+                    <button class="btn-pro" style="background: rgba(255,255,255,0.05); color: #fff;" onclick="undoLastBox()">UNDO</button>
+                    <button class="btn-pro" style="background: rgba(255,255,255,0.05); color: #fff;" onclick="clearBoxes()">CLEAR ALL</button>
+                    <button class="btn-pro" style="margin-top:0.5rem;" onclick="saveLabel()">SAVE DIAGNOSTIC</button>
+                </div>
+                <div id="saveStatus" style="font-family:var(--font-mono); font-size:0.75rem; margin-top:0.5rem;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="panel">
+        <div class="panel-head">Training Control Panel</div>
+        <div class="btn-row">
+            <button class="btn-pro" style="background: rgba(var(--primary-rgb), 0.1); border: 1px solid var(--dc-primary); color: var(--dc-primary);" onclick="loadStats()">REFRESH DATA</button>
+            <button class="btn-pro" onclick="prepareDataset()">OPTIMIZE DATASET</button>
+            <button class="btn-pro" style="background: rgba(var(--dc-secondary-rgb), 0.1); border: 1px solid var(--dc-secondary); color: var(--dc-secondary);" onclick="augmentDataset()">NEURAL AUGMENTATION</button>
+            <button class="btn-pro" style="background: linear-gradient(135deg, var(--accent), #ff3366); color: #fff;" onclick="startTraining()">TRAIN AI NEURAL ENGINE</button>
+        </div>
+        <div id="statusBox" style="margin-top: 1.5rem;">System ready for dataset operations.</div>
+    </div>
+</div>
+
+<script>
+const CLASSES = ['Healthy', 'Anthracnose', 'Dieback', 'Leaf Spot', 'Powdery Mildew'];
+const CLASS_COLORS = ['#05ffa1', '#ff3366', '#f59e0b', '#a855f7', '#0ea5e9'];
+let labelImages = [], labelIdx = 0;
+let boxes = [], drawing = false, startX, startY;
+let activeClass = 0;
+let canvasImg = new Image();
+let canvasScale = 1;
+
+// Build class buttons
+(function buildClassBtns(){
+    const el = document.getElementById('classBtns');
+    el.innerHTML = CLASSES.map((c,i)=>`
+        <button class="class-btn${i===0?' active':''}" 
+                style="color:${i===0?CLASS_COLORS[i]:'inherit'}"
+                onclick="setClass(${i})" id="cbtn${i}">
+            ${i}: ${c}
+        </button>`).join('');
+})();
+
+function setClass(i){
+    activeClass = i;
+    CLASSES.forEach((_,j)=>{
+        const b = document.getElementById('cbtn'+j);
+        b.classList.toggle('active', j===i);
+        b.style.color = j===i ? CLASS_COLORS[j] : 'var(--text-secondary)';
+    });
+}
+
+// Stats & Data
+async function loadStats() {
+    try {
+        const r = await fetch('/api/data_collection/stats');
+        const d = await r.json();
+        if (d.success) {
+            document.getElementById('totalImages').textContent = d.stats.total_images;
+            document.getElementById('totalLabels').textContent = d.stats.total_labels;
+            document.getElementById('healthScore').textContent = d.stats.health_score + '%';
+            document.getElementById('healthLabel').textContent = d.stats.health_score > 80 ? 'Optimal Training Data' : 'Needs more labels';
+        }
+    } catch(e) { setStatus('IO_ERR: ' + e.message); }
+}
+
+function setStatus(msg) {
+    document.getElementById('statusBox').textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+}
+
+// Labeling Logic
+function loadLabelImages(files){
+    labelImages = Array.from(files).filter(f=>f.type.startsWith('image/'));
+    if(!labelImages.length) return;
+    labelIdx = 0;
+    document.getElementById('labelNav').style.display = 'flex';
+    document.getElementById('labelerWrap').style.display = 'grid';
+    loadImageAt(0);
+}
+
+function loadImageAt(idx){
+    boxes = [];
+    const file = labelImages[idx];
+    document.getElementById('labelImgCounter').textContent = (idx+1)+' / '+labelImages.length;
+    document.getElementById('labelImgName').textContent = file.name;
+    const url = URL.createObjectURL(file);
+    canvasImg.onload = ()=>{
+        const canvas = document.getElementById('labelCanvas');
+        const maxW = canvas.parentElement.clientWidth;
+        canvasScale = Math.min(1, maxW / canvasImg.naturalWidth);
+        canvas.width = canvasImg.naturalWidth * canvasScale;
+        canvas.height = canvasImg.naturalHeight * canvasScale;
+        redraw();
+    };
+    canvasImg.src = url;
+    updateBboxList();
+}
+
+function prevImage(){ if(labelIdx>0){ labelIdx--; loadImageAt(labelIdx); } }
+function nextImage(){ if(labelIdx<labelImages.length-1){ labelIdx++; loadImageAt(labelIdx); } }
+
+const canvas = document.getElementById('labelCanvas');
+canvas.addEventListener('mousedown', e=>{
+    const r = canvas.getBoundingClientRect();
+    startX = e.clientX - r.left; startY = e.clientY - r.top;
+    drawing = true;
+});
+
+canvas.addEventListener('mousemove', e=>{
+    if(!drawing) return;
+    const r = canvas.getBoundingClientRect();
+    const curX = e.clientX - r.left, curY = e.clientY - r.top;
+    redraw();
+    const ctx = canvas.getContext('2d');
+    ctx.strokeStyle = CLASS_COLORS[activeClass];
+    ctx.lineWidth = 2;
+    ctx.strokeRect(startX, startY, curX-startX, curY-startY);
+});
+
+canvas.addEventListener('mouseup', e=>{
+    if(!drawing) return;
+    drawing = false;
+    const r = canvas.getBoundingClientRect();
+    const ex = e.clientX - r.left, ey = e.clientY - r.top;
+    const w = Math.abs(ex-startX), h = Math.abs(ey-startY);
+    if(w < 10 || h < 10) return;
+    const x1 = Math.min(startX,ex), y1 = Math.min(startY,ey);
+    boxes.push({ cls: activeClass, x1, y1, x2: x1+w, y2: y1+h });
+    redraw();
+    updateBboxList();
+});
+
+function redraw(){
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(canvasImg, 0, 0, canvas.width, canvas.height);
+    boxes.forEach(b=>{
+        ctx.strokeStyle = CLASS_COLORS[b.cls];
+        ctx.lineWidth = 2;
+        ctx.strokeRect(b.x1, b.y1, b.x2-b.x1, b.y2-b.y1);
+        ctx.fillStyle = CLASS_COLORS[b.cls];
+        ctx.font = '10px monospace';
+        ctx.fillText(CLASSES[b.cls], b.x1+5, b.y1+12);
+    });
+}
+
+function updateBboxList(){
+    document.getElementById('bboxCount').textContent = boxes.length;
+    document.getElementById('bboxList').innerHTML = boxes.map((b,i)=>`
+        <div class="bbox-item">
+            <span style="color:${CLASS_COLORS[b.cls]}">${CLASSES[b.cls]}</span>
+            <span class="bbox-del" onclick="deleteBox(${i})">✕</span>
+        </div>`).join('') || '<div style="color:var(--text-muted); font-size:0.7rem;">Buffer empty.</div>';
+}
+
+function deleteBox(i){ boxes.splice(i,1); redraw(); updateBboxList(); }
+function undoLastBox(){ boxes.pop(); redraw(); updateBboxList(); }
+function clearBoxes(){ boxes=[]; redraw(); updateBboxList(); }
+
+async function runAutoLabel() {
+    if(!labelImages[labelIdx]) return;
+    setStatus('Intelligence Core is analyzing specimen texture...');
+    try {
+        const response = await fetch('/api/auto-label', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: labelImages[labelIdx].name })
+        });
+        const result = await response.json();
+        if (result.success && result.boxes.length) {
+            // Convert normalized [0-1] boxes back to pixel coords [canvas]
+            const canvas = document.getElementById('labelCanvas');
+            result.boxes.forEach(b => {
+                const w = b.w * canvas.naturalWidth * canvasScale;
+                const h = b.h * canvas.naturalHeight * canvasScale;
+                const xc = b.x * canvas.naturalWidth * canvasScale;
+                const yc = b.y * canvas.naturalHeight * canvasScale;
+                const x1 = xc - (w/2);
+                const y1 = yc - (h/2);
+                boxes.push({ cls: b.cls, x1, y1, x2: x1+w, y2: y1+h });
+            });
+            redraw();
+            updateBboxList();
+            setStatus('✓ AI has identified ' + result.boxes.length + ' disease markers. Please verify.');
+        } else {
+            setStatus('⚠ Intelligence Core found no significant pathological markers.');
+        }
+    } catch(e) { setStatus('⚠ Auto-label failed: ' + e.message); }
+}
+
+async function augmentDataset() {
+    setStatus('🚀 Generating synthetic training samples...');
+    try {
+        const response = await fetch('/api/dataset/augment', { method: 'POST' });
+        const result = await response.json();
+        if (result.success) {
+            setStatus('✓ ' + result.message);
+            loadStats();
+        } else {
+            setStatus('❌ ' + result.error);
+        }
+    } catch(e) { setStatus('❌ Error: ' + e.message); }
+}
+
+async function saveLabel(){
+    if(!boxes.length){ alert('Please label at least one region.'); return; }
+    setStatus('Transmitting diagnostic data...');
+    
+    try {
+        // Convert boxes to YOLO format (normalized 0-1)
+        const imgW = canvasImg.naturalWidth;
+        const imgH = canvasImg.naturalHeight;
+        
+        const yoloBoxes = boxes.map(b => {
+            const x_center = ((b.x1 + b.x2) / 2 / canvasScale) / imgW;
+            const y_center = ((b.y1 + b.y2) / 2 / canvasScale) / imgH;
+            const width = ((b.x2 - b.x1) / canvasScale) / imgW;
+            const height = ((b.y2 - b.y1) / canvasScale) / imgH;
+            return { cls: b.cls, x: x_center, y: y_center, w: width, h: height };
+        });
+        
+        const response = await fetch('/api/save-label', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                image: labelImages[labelIdx].name,
+                boxes: yoloBoxes
+            })
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+            setStatus('✓ Data successfully committed to training buffer.');
+            if(labelIdx < labelImages.length-1) nextImage();
+        } else {
+            setStatus('❌ Save failed: ' + result.error);
+        }
+    } catch(e) {
+        setStatus('❌ Network error: ' + e.message);
+    }
+}
+
+async function prepareDataset() {
+    setStatus('Optimizing dataset structure...');
+    try {
+        const response = await fetch('/api/prepare-dataset', { method: 'POST' });
+        const result = await response.json();
+        if (result.success) {
+            setStatus('✓ ' + result.message);
+        } else {
+            setStatus('❌ ' + result.error);
+        }
+    } catch(e) {
+        setStatus('❌ Error: ' + e.message);
+    }
+}
+
+async function startTraining() {
+    if (!confirm('Start neural engine training? This will take 30-60 minutes.')) return;
+    
+    setStatus('🚀 Initiating training pipeline...');
+    try {
+        const response = await fetch('/api/train', { method: 'POST' });
+        const result = await response.json();
+        
+        if (result.success) {
+            setStatus('✓ Training started! Monitor console for progress.');
+            // Poll training status
+            pollTrainingStatus();
+        } else {
+            setStatus('❌ Training failed: ' + result.error);
+        }
+    } catch(e) {
+        setStatus('❌ Error: ' + e.message);
+    }
+}
+
+async function pollTrainingStatus() {
+    const interval = setInterval(async () => {
+        try {
+            const response = await fetch('/api/train/status');
+            const result = await response.json();
+            
+            if (result.status === 'running') {
+                setStatus('🔥 Training in progress...');
+            } else if (result.status === 'idle') {
+                setStatus('✓ Training complete! Reloading model...');
+                clearInterval(interval);
+                // Reload model
+                await fetch('/api/reload-model', { method: 'POST' });
+                setStatus('✓ Neural engine updated successfully!');
+            }
+        } catch(e) {
+            console.error('Status poll error:', e);
+        }
+    }, 5000); // Check every 5 seconds
+}
+
+loadStats();
+</script>
+{% endblock %}
