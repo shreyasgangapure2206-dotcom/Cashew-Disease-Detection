@@ -9,7 +9,8 @@ SQLAlchemy==2.0.23
 
 # Deep Learning - PyTorch
 --extra-index-url https://download.pytorch.org/whl/cpu
-
+torch==2.1.0
+torchvision==0.16.0
 # Computer Vision
 gunicorn==21.2.0
 opencv-python-headless==4.8.1.78
